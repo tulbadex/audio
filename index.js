@@ -8,7 +8,6 @@ const app = express();
 
 const server = require('http').Server(app)
 const io = require('socket.io')(server)
-const { v4: uuidV4 } = require('uuid')
 
 var corsOptions = {
     origin: "http://localhost:8081"
@@ -31,7 +30,7 @@ require('./routes/auth')(app);
 const db = require("./models");
 const Role = db.role;
 
-db.sequelize.sync({ force: true }).then(() => {
+/* db.sequelize.sync({ force: true }).then(() => {
     console.log('Drop and Resync Db');
     initial();
 });
@@ -51,7 +50,7 @@ function initial() {
         id: 3,
         name: "admin"
     });
-}
+} */
 
 
 
@@ -64,20 +63,6 @@ io.on('connection', (socket) => {
     })
 });
 
-function verifyToken(req, res, next) {
-    // Get the auth header value
-    const bearerHeader = req.headers['authorization']
-    // Token Format = Bearer <token>
-    if (typeof bearerHeader !== "undefined" || typeof bearerHeader !== null) {
-        const bearer = bearerHeader.split(' ');
-        // get token
-        const bearerToken = bearer[1]
-        req.token = bearerToken;
-        next();
-    }else{
-        res.sendStatus(403)
-    }
-}
 
 
 /* server.listen(3000, () => {

@@ -80,6 +80,21 @@ isModeratorOrAdmin = (req, res, next) => {
     });
 };
 
+function verifyToken(req, res, next) {
+    // Get the auth header value
+    const bearerHeader = req.headers['authorization']
+    // Token Format = Bearer <token>
+    if (typeof bearerHeader !== "undefined" || typeof bearerHeader !== null) {
+        const bearer = bearerHeader.split(' ');
+        // get token
+        const bearerToken = bearer[1]
+        req.token = bearerToken;
+        next();
+    } else {
+        res.sendStatus(403)
+    }
+}
+
 const authJwt = {
     verifyToken: verifyToken,
     isAdmin: isAdmin,
