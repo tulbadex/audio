@@ -1,8 +1,10 @@
+const os = require('os');
 const express = require('express');
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const jwt = require('jsonwebtoken');
-const { send } = require('process');
+const adapter = require('webrtc-adapter')
+// import adapter from 'webrtc-adapter';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -26,12 +28,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 require('./routes/auth')(app);
-// require('./app/routes/user.routes')(app);
+require('./routes/user')(app);
+
+app.get('/', (req, res) => {
+    // console.log(adapter.browserDetails.browser)
+    res.send({adapter})
+})
 
 const db = require("./models");
 const Role = db.role;
-
-/* db.sequelize.sync({ force: true }).then(() => {
+// db.sequelize.sync({ force: true })
+db.sequelize.sync({ force: false }).then(() => {
     console.log('Drop and Resync Db');
     initial();
 });
@@ -51,7 +58,7 @@ function initial() {
         id: 3,
         name: "admin"
     });
-} */
+}
 
 
 
