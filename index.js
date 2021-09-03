@@ -3,14 +3,24 @@ const express = require('express');
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const jwt = require('jsonwebtoken');
-const adapter = require('webrtc-adapter')
+const adapter = require('webrtc-adapter');
 // import adapter from 'webrtc-adapter';
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
-const server = require('http').Server(app)
-const io = require('socket.io')(server)
+const http = require('http');
+const server = http.createServer(app);
+const io = require('socket.io')(server);
+const WebSocketServer = require('websocket').server;
+
+// wait for when a connection request comes in 
+new WebSocketServer({
+    httpServer: app, 
+    autoAcceptConnections: false 
+}).on('request', onRequest);
+
+const PORT = process.env.PORT || 8080;
 
 var corsOptions = {
     origin: "http://localhost:8081"
@@ -32,8 +42,8 @@ require('./routes/user')(app);
 
 app.get('/', (req, res) => {
     // console.log(adapter.browserDetails.browser)
-    res.send({adapter})
-})
+    res.sendFile(path.join(__dirname+'/view/index.html'));
+});
 
 const db = require("./models");
 const Role = db.role;
@@ -61,15 +71,55 @@ function initial() {
 }
 
 
+// callback function to run when we have a successful websocket connection request
+function onRequest(socket) {
 
-io.on('connection', (socket) => {
-    console.log('a user connected');
-    socket.on('join-room', (roomId, userId) => {
-        console.log('a user connected' + roomId + ' ' + userId);
-        socket.join(roomId)
-        socket.to(roomId).broadcast.emit('user-connected', userId)
-    })
-});
+    // get origin of request 
+    var origin = socket.origin + socket.resource;
+
+    // accept socket origin 
+    var websocket = socket.accept(null, origin);
+
+    // websocket message event for when message is received
+    websocket.on('message', function(message) {
+        if(!message || !websocket) return;
+
+        if (message.type === 'utf8') {
+            try {
+                // handle JSON serialization of messages 
+                onMessage(JSON.parse(message.utf8Data), websocket);
+            }
+            // catch any errors 
+            catch(e) {}
+        }
+    });
+    // websocket event when the connection is closed 
+    websocket.on('close', function() {
+        try {
+            // close websocket channels when the connection is closed for whatever reason
+            truncateChannels(websocket);
+        }
+        catch(e) {}
+    });
+}
+
+// callback to run when the message event is fired 
+function onMessage(message, websocket) {
+    if(!message || !websocket) return;
+
+    try {
+        if (message.checkPresence) {
+            checkPresence(message, websocket);
+        }
+        else if (message.open) {
+            onOpen(message, websocket);
+        }
+        else {
+            sendMessage(message, websocket);
+        }
+    }
+    catch(e) {}
+}
 
 
 
